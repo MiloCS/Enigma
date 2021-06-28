@@ -1,7 +1,49 @@
 html {
-	background: lightgrey;
+	background: white;
+	font-family: Trebuchet MS, sans-serif;
 }
 
-#c {
-	border:  1px solid black;
+#settings-container {
+	width: 90%;
+}
+
+#status {
+	border-radius: 5px;
+	background: #bae8c7;
+	margin-top: 10px;
+	padding: 2px;
+	padding-left: 10px;
+	width: auto;
+}
+
+#main-container {
+	display:  flex;
+	flex-direction: row;
+}
+
+#left-container {
+	border-radius: 10px;
+	background:  lightgrey;
+	padding:  10px;
+	margin-right:  10px;
+	min-width: 400px;
+}
+
+#right-container {
+	border-radius: 10px;
+	background: lightgrey;
+	padding:  10px;
+	text-align: center;
+}
+
+textarea {
+	font-family: Trebuchet MS, sans-serif;
+	resize: none;
+	min-height: 120px;
+	width: 90%;
+}
+
+canvas {
+	border:  2px solid black;
+	margin:  none;
 }
