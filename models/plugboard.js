@@ -13,33 +13,40 @@ function plugboardize(text) {
 	return result
 }
 
-
+//gets the letter the coords are inside, or null if they aren't inside a letter
 function getPlugBoardLetterFromCoords(coords) {
-	tempx = coords.x - PLUGBOARD_XOFFSET
-	tempy = coords.y - PLUGBOARD_YOFFSET
-	indices = getLetterIndices(coords)
+	let tempx = coords.x - PLUGBOARD_XOFFSET
+	let tempy = coords.y - PLUGBOARD_YOFFSET
+	let indices = getLetterIndices(coords)
 
-	dist = Math.hypot(tempx - indices.x * PLUGBOARD_XSPACE, tempy - indices.y * PLUGBOARD_YSPACE)
+	let dist = Math.hypot(tempx - indices.x * PLUGBOARD_XSPACE, tempy - indices.y * PLUGBOARD_YSPACE)
 	if (dist > PLUGBOARD_LETTERRADIUS) {
 		return null
 	}
 
-	return plugboardRows[yindex].charAt(xindex)
+	return plugboardRows[indices.y].charAt(indices.x)
 }
 
 function getLetterIndices(coords) {
-	tempx = coords.x - PLUGBOARD_XOFFSET
-	tempy = coords.y - PLUGBOARD_YOFFSET
+	let tempx = coords.x - PLUGBOARD_XOFFSET
+	let tempy = coords.y - PLUGBOARD_YOFFSET
 
-	xindex = Math.round(tempx/PLUGBOARD_XSPACE)
-	yindex = Math.round(tempy/PLUGBOARD_YSPACE)
+	let xindex = Math.round(tempx/PLUGBOARD_XSPACE)
+	let yindex = Math.round(tempy/PLUGBOARD_YSPACE)
 
 	return {x: xindex, y: yindex}
 }
 
+//this is different than getPlugBoardLetterFromCords because it returns the central coords of a letter, not the letter
 function getClosestLetterCoords(coords) {
-	indices = getLetterIndices(coords)
+	let indices = getLetterIndices(coords)
 	return {x: indices.x * PLUGBOARD_XSPACE + PLUGBOARD_XOFFSET, y: indices.y * PLUGBOARD_YSPACE + PLUGBOARD_YOFFSET}
+}
+
+//function for selecting a random line color so that lines can be varied a bit and distinguished
+function selectRandomLineColor() {
+	let rand = String(Math.floor(Math.random() * 50 + 10))
+	return "#".concat(rand.repeat(3))
 }
 
 
@@ -52,19 +59,15 @@ function setupPlugBoardCanvas() {
 	plugboardContext = ctx
 
 	canvas.addEventListener("mousedown", (e) => {
-		drawPlugboard(ctx, canvas)
-		// ctx.beginPath()
-		// let coord = getCanvasPosition(canvas, e)
-		// ctx.arc(coord.x, coord.y, 10, 0, 2 * Math.PI)
-		// ctx.stroke()
+		tempColor = selectRandomLineColor()
 		coords = getCanvasPosition(canvas, e)
 		tempConnectedLetter = getPlugBoardLetterFromCoords(coords)
 		tempLetterCoords = getClosestLetterCoords(coords)
+		drawPlugboard(ctx, canvas, e)
 	})
 	canvas.addEventListener("mouseup", (e) => {
-		drawPlugboard(ctx, canvas)
-		coords = getCanvasPosition(canvas, e)
-		otherConnectedLetter = getPlugBoardLetterFromCoords(coords)
+		let secondCoords = getCanvasPosition(canvas, e)
+		let otherConnectedLetter = getPlugBoardLetterFromCoords(secondCoords)
 		if (tempConnectedLetter == otherConnectedLetter) {
 			console.log("rule cannot between same letter")
 		}
@@ -77,34 +80,72 @@ function setupPlugBoardCanvas() {
 		else if (tempConnectedLetter != null && otherConnectedLetter != null) {
 			plugboardRules.set(tempConnectedLetter, otherConnectedLetter)
 			plugboardRules.set(otherConnectedLetter, tempConnectedLetter)
-			plugboardPairs.push(getClosestLetterCoords(coords))
+			plugboardPairs.push({"first": getClosestLetterCoords(coords), "second":getClosestLetterCoords(secondCoords), "color": tempColor})
 		}
 		tempConnectedLetter = null
 		coords = null
+		drawPlugboard(ctx, canvas, e)
 	})
 	canvas.addEventListener("mousemove", (e) => {
-		drawPlugboard(ctx, canvas)
-		if (coords) {
-			ctx.beginPath()
-			ctx.moveTo(tempLetterCoords.x, tempLetterCoords.y)
-			newCoords = getCanvasPosition(canvas, e)
-			ctx.lineWidth = 5
-			ctx.lineTo(newCoords.x, newCoords.y)
-			ctx.stroke()
-			ctx.beginPath()
-			ctx.arc(tempLetterCoords.x, tempLetterCoords.y, PLUGBOARD_LETTERRADIUS, 0, 2 * Math.PI)
-			ctx.stroke()
-		}
+		drawPlugboard(ctx, canvas, e)
 	})
-	drawPlugboard(ctx, canvas)
+	drawPlugboard(ctx, canvas, new MouseEvent("dummy"))
+}
+
+function circleLetter(ctx, coords) {
+	ctx.moveTo(coords.x, coords.y)
+	ctx.beginPath()
+	ctx.arc(coords.x, coords.y, PLUGBOARD_LETTERRADIUS, 0, 2 * Math.PI)
+	ctx.stroke()
+}
+
+function lineBetween(ctx, coords1, coords2) {	
+	ctx.lineWidth = 5
+	ctx.beginPath()
+	ctx.moveTo(coords1.x, coords1.y)
+	ctx.lineTo(coords2.x, coords2.y)
+	ctx.stroke()
+}
+
+function connectLetters(ctx, coords1, coords2, color) {
+	ctx.strokeStyle = color
+	circleLetter(ctx, coords1)
+	lineBetween(ctx, coords1, coords2)
+	circleLetter(ctx, coords2)
 }
 
 
-function drawPlugboard(ctx, canvas) {
+function drawPlugboard(ctx, canvas, e) {
 	ctx.fillStyle = "#adadad"
 	ctx.fillRect(0, 0, canvas.width, canvas.height)
 
 	ctx.fill()
+
+	plugboardPairs.forEach((pair) => {
+		connectLetters(ctx, pair.first, pair.second, pair.color)
+	})
+
+	if (coords) {
+		ctx.strokeStyle = tempColor
+		lc = getClosestLetterCoords(coords)
+		circleLetter(ctx, lc)
+		newCoords = getCanvasPosition(canvas, e)
+
+		endLetter = getPlugBoardLetterFromCoords(newCoords)
+		if (endLetter != null) {
+			nlc = getClosestLetterCoords(newCoords)
+			circleLetter(ctx, nlc)
+			lineBetween(ctx, lc, nlc)
+		}
+		else {
+			ctx.fillStyle = "black"
+			ctx.moveTo(newCoords.x, newCoords.y)
+			ctx.beginPath()
+			ctx.arc(newCoords.x, newCoords.y, 8, 0, 2 * Math.PI)
+			ctx.fill()
+			lineBetween(ctx, lc, newCoords)
+		}
+	}
 
 	for (let i=0; i<plugboardRows.length; i++) {
 		letters = Array.from(plugboardRows[i])

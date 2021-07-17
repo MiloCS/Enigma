@@ -15,6 +15,7 @@ let plugboardRules = new Map()
 let plugboardPairs = []
 let plugboardCanvas
 let plugboardContext
+let tempColor
 
 //lightboard values
 let LIGHTBOARD_XSPACE = 45
